@@ -4,20 +4,22 @@
 
 > Turn your teammates' separate AI agents into one team brain: what the team discusses with its bots in public channels is recorded as shared team memory, and every teammate's agent can use it. DMs and private channels are never shared.
 
+![TeamBrain 데모: 지민이 #dev에서 내린 결정을 서준의 봇이 기억해 답하고, 팀 위키에 정리된다](docs/demo.gif)
+
 ## 왜 필요한가
 
-팀원마다 AI 봇을 쓰면 AI도 사람 수만큼 따로 놉니다. 동연의 봇이 들은 결정을 운호의 봇은 모르고, 같은 설명을 봇마다 반복해야 합니다.
+팀원마다 AI 봇을 쓰면 AI도 사람 수만큼 따로 놉니다. 지민의 봇이 들은 결정을 서준의 봇은 모르고, 같은 설명을 봇마다 반복해야 합니다.
 
 TeamBrain을 쓰면 **팀 채널에서 봇과 나눈 대화가 팀의 기억으로 기록**되고, 누구의 봇이든 그 기억을 꺼내 답합니다.
 
 ```
-#개발 채널    동연 → @동연봇  "DB는 Postgres로 가자. 이유는 ..."
+#dev 채널    지민 → @지민봇  "DB는 Postgres로 가자. 이유는 ..."
                               ↓  TeamBrain이 팀 기억에 기록
 
-일주일 뒤     운호 → @운호봇  "우리 DB 뭐 쓰기로 했지?"
-              @운호봇        "동연님이 #개발에서 Postgres로 정했어요. 이유는 ..."
+일주일 뒤     서준 → @서준봇  "우리 DB 뭐 쓰기로 했지?"
+              @서준봇        "지민님이 #dev에서 Postgres로 정했어요. 이유는 ..."
 
-DM            홍재 → @홍재봇  (개인적인 대화)
+DM            하준 → @하준봇  (개인적인 대화)
                               ✗  팀 기억에 절대 기록되지 않음
 ```
 

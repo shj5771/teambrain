@@ -15,7 +15,7 @@ from teambrain.memory_provider.store import TeamKnowledgeStore
 from teambrain.memory_provider.wiki import TeamWiki, WikiPage, parse_llm_pages, safe_slug
 
 
-def add_entry(store: TeamKnowledgeStore, user: str, assistant: str = "ok", who: str = "동연", chat: str = "dev") -> None:
+def add_entry(store: TeamKnowledgeStore, user: str, assistant: str = "ok", who: str = "지민", chat: str = "dev") -> None:
     store.append_entry(
         owner_user_id=who, owner_user_name=who, visibility="team", chat_id="c1", chat_name=chat,
         channel_type="channel", platform="mattermost", profile=who, session_id="s", thread_id="",
@@ -52,7 +52,7 @@ class WikiTestCase(unittest.TestCase):
 class TestCurate(WikiTestCase):
     def test_creates_page_from_entries(self):
         add_entry(self.store, "DB는 Postgres로 가자. JSON 지원 때문에")
-        llm = FakeLLM(reply({"slug": "database-choice", "title": "DB 선택", "content": "**Postgres** — 동연, #dev"}))
+        llm = FakeLLM(reply({"slug": "database-choice", "title": "DB 선택", "content": "**Postgres** — 지민, #dev"}))
 
         self.assertEqual(self.wiki.curate(llm), ["database-choice"])
         page = self.wiki.get_page("database-choice")
@@ -149,7 +149,7 @@ class TestProviderIntegration(WikiTestCase):
         provider._store = self.store
         provider._wiki = self.wiki
         provider._curate_every = 0  # no background thread in tests
-        provider.initialize("s", platform="mattermost", agent_identity="운호", user_name="운호",
+        provider.initialize("s", platform="mattermost", agent_identity="서준", user_name="서준",
                             chat_type=chat_type, chat_name="dev")
         return provider
 

@@ -33,6 +33,7 @@ except ImportError:  # outside Hermes (unit tests, CLI): plain base class
 
 from .store import TeamKnowledgeStore
 from .visibility import resolve_visibility, should_sync
+from .names import channel_name, person_name
 from .wiki import TeamWiki
 
 logger = logging.getLogger(__name__)
@@ -155,10 +156,10 @@ class TeamBrainMemoryProvider(MemoryProvider):
         visibility = resolve_visibility(self._chat_type)
         self._store.append_entry(
             owner_user_id=self._user_id,
-            owner_user_name=self._user_name,
+            owner_user_name=person_name(self._platform, self._user_id, self._user_name),
             visibility=visibility,
             chat_id=self._chat_id,
-            chat_name=self._chat_name,
+            chat_name=self._chat_name or channel_name(self._platform, self._chat_id),
             channel_type=str(self._chat_type),
             platform=self._platform,
             profile=self._profile,

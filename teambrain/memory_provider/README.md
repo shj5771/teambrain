@@ -26,6 +26,9 @@ and changed decisions kept under a "변경 이력" (change history) section.
       model: <model id>
   ```
 
+Store location: `~/.hermes/team_knowledge/store.jsonl` by default; set
+`TEAMBRAIN_STORE=/path/to/store.jsonl` to move it (the wiki lives next to it).
+
 CLI:
 
 ```bash

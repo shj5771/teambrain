@@ -55,13 +55,16 @@ Rules:
 how-tos, owners, deadlines. Ignore greetings, chit-chat and one-off questions \
 with no lasting value. If nothing is worth recording, return {"pages": []}.
 - Prefer updating an existing page over creating a near-duplicate.
+- A teammate merely ASKING about something already recorded is not a new fact: \
+do not add them as a source and do not change the page for it.
 - Never invent facts. Every fact must come from the entries or existing pages.
 - Attribute each fact: who said it, in which channel, on which date \
-(e.g. "— 동연, #dev, 2026-11-03").
+(e.g. "— 지민, #dev, 2026-11-03"; omit the channel if the entry has none).
 - When a new entry changes an earlier decision, put the CURRENT decision at the \
 top of the page and move the old one under a "## 변경 이력" (change history) \
 section with its date. Never silently drop the old decision.
-- Write pages in the language the team uses in the entries.
+- Write titles AND page content in the language the team uses in the entries \
+(Korean entries → Korean title and content).
 - Page content is Markdown WITHOUT a top-level "# title" line (the title is a \
 separate field). Keep each page under 6000 characters.
 - slug: lowercase ASCII letters, digits and hyphens only, max 60 chars \
@@ -198,7 +201,8 @@ class TeamWiki:
         scored.sort(key=lambda t: t[0], reverse=True)
         if not scored:
             return ""
-        lines = ["[TeamBrain wiki] Curated team knowledge (most relevant pages):"]
+        lines = ["[TeamBrain wiki] Curated team knowledge (most relevant pages). "
+                 "When you answer from it, say WHO decided it (e.g. \"지민님이 #dev에서 정했어요\")."]
         for _, page in scored[:limit]:
             body = page.content
             if len(body) > max_chars:
@@ -292,10 +296,10 @@ class TeamWiki:
         lines = []
         for e in batch:
             owner = (e.get("owner") or {}).get("user_name") or e.get("profile", "unknown")
-            where = f"#{e['chat_name']}" if e.get("chat_name") else "(channel)"
+            where = f"#{e['chat_name']}, " if e.get("chat_name") else ""
             when = str(e.get("timestamp", ""))[:10]
             lines.append(
-                f"- {owner}, {where}, {when}\n  user: {e.get('user', '')}\n  assistant: {e.get('assistant', '')}"
+                f"- {owner}, {where}{when}\n  user: {e.get('user', '')}\n  assistant: {e.get('assistant', '')}"
             )
 
         user_msg = (

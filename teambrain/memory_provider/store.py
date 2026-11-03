@@ -10,6 +10,7 @@ migration. See docs/visibility-rule.md.
 from __future__ import annotations
 
 import json
+import os
 import re
 import threading
 from datetime import datetime, timezone
@@ -17,6 +18,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 _DEFAULT_STORE_PATH = Path.home() / ".hermes" / "team_knowledge" / "store.jsonl"
+
+
+def default_store_path() -> Path:
+    """TEAMBRAIN_STORE overrides the shared store location (wiki lives next to it)."""
+    override = os.environ.get("TEAMBRAIN_STORE", "").strip()
+    return Path(override).expanduser() if override else _DEFAULT_STORE_PATH
 _MAX_PREFETCH_HITS = 5
 
 
@@ -41,7 +48,7 @@ class TeamKnowledgeStore:
     """Thread-safe append/read access to the shared JSONL store."""
 
     def __init__(self, store_path: Optional[Path] = None) -> None:
-        self.path = store_path or _DEFAULT_STORE_PATH
+        self.path = store_path or default_store_path()
         self._lock = threading.Lock()
 
     def append_entry(
