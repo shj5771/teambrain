@@ -9,19 +9,31 @@ never written to the shared store.
 
 See docs/visibility-rule.md for the design rationale.
 
+Team wiki (wiki.py): every few new entries, Hermes' own model folds the raw
+store into curated Markdown topic pages (decisions, facts, how-tos) under
+~/.hermes/team_knowledge/wiki/. prefetch() serves curated pages first and raw
+conversations second.
+
 Store location: ~/.hermes/team_knowledge/store.jsonl (outside any single
 profile's HERMES_HOME, so profiles genuinely share it).
 """
 
 from __future__ import annotations
 
+import json
 import logging
+import os
+import threading
 from typing import Any, Dict, List
 
-from agent.memory_provider import MemoryProvider
+try:
+    from agent.memory_provider import MemoryProvider
+except ImportError:  # outside Hermes (unit tests, CLI): plain base class
+    MemoryProvider = object  # type: ignore[misc,assignment]
 
 from .store import TeamKnowledgeStore
 from .visibility import resolve_visibility, should_sync
+from .wiki import TeamWiki
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +43,35 @@ logger = logging.getLogger(__name__)
 # the convention already used by the honcho/supermemory bundled providers.
 _SYNCABLE_AGENT_CONTEXTS = frozenset({"", "primary"})
 
+# Curate the wiki once this many new entries have piled up.
+# 0 disables automatic curation (run `python -m teambrain.memory_provider curate` instead).
+_CURATE_EVERY = int(os.environ.get("TEAMBRAIN_CURATE_EVERY", "5") or 0)
+
+_TOOL_SCHEMAS = [
+    {
+        "name": "team_wiki_list",
+        "description": "List all pages in the team wiki (curated team decisions, facts, how-tos).",
+        "parameters": {"type": "object", "properties": {}, "required": []},
+    },
+    {
+        "name": "team_wiki_read",
+        "description": "Read one team wiki page in full by its slug (see team_wiki_list).",
+        "parameters": {
+            "type": "object",
+            "properties": {"slug": {"type": "string", "description": "Page slug, e.g. database-choice"}},
+            "required": ["slug"],
+        },
+    },
+]
+
 
 class TeamBrainMemoryProvider(MemoryProvider):
     """Shared team-knowledge provider, filtered by the MVP visibility rule."""
 
     def __init__(self) -> None:
         self._store = TeamKnowledgeStore()
+        self._wiki = TeamWiki(self._store)
+        self._curate_every = _CURATE_EVERY
         self._profile = "unknown"
         self._platform = "unknown"
         self._user_id = "unknown"
@@ -83,13 +118,17 @@ class TeamBrainMemoryProvider(MemoryProvider):
             "# TeamBrain\n"
             "You have access to a shared team knowledge store. Relevant entries "
             "from teammates (across different Hermes profiles/bots) may be "
-            "injected below as [TeamBrain] context before your turn. Only "
-            "conversations from fully open team channels are ever captured here "
-            "— direct messages and private channels are never included."
+            "injected below as [TeamBrain] context before your turn: curated "
+            "team wiki pages first, then raw conversations. When you use this "
+            "knowledge, say who decided it and when. Use team_wiki_list / "
+            "team_wiki_read to browse the wiki. Only conversations from fully "
+            "open team channels are ever captured here — direct messages and "
+            "private channels are never included."
         )
 
     def prefetch(self, query: str, *, session_id: str = "") -> str:
-        return self._store.search(query)
+        parts = [self._wiki.search(query), self._store.search(query, limit=3)]
+        return "\n\n".join(p for p in parts if p)
 
     def sync_turn(
         self,
@@ -129,8 +168,44 @@ class TeamBrainMemoryProvider(MemoryProvider):
             assistant_content=assistant_content,
         )
 
+        self._maybe_curate_in_background()
+
+    # -- team wiki -----------------------------------------------------------
+
+    def _maybe_curate_in_background(self) -> None:
+        if self._curate_every <= 0:
+            return
+        try:
+            if self._wiki.pending_count() < self._curate_every:
+                return
+        except OSError:
+            return
+        threading.Thread(target=self._curate_safely, name="teambrain-wiki", daemon=True).start()
+
+    def _curate_safely(self) -> None:
+        try:
+            self._wiki.curate()
+        except Exception:  # never let wiki curation break a chat turn
+            logger.exception("TeamBrain wiki curation failed (will retry later)")
+
+    def on_session_end(self, messages: List[Dict[str, Any]]) -> None:
+        if self._curate_every > 0 and self._wiki.pending_count() > 0:
+            self._curate_safely()
+
     def get_tool_schemas(self) -> List[Dict[str, Any]]:
-        return []
+        return _TOOL_SCHEMAS
+
+    def handle_tool_call(self, tool_name: str, args: Dict[str, Any], **kwargs: Any) -> str:
+        if tool_name == "team_wiki_list":
+            pages = [{"slug": p.slug, "title": p.title, "updated": p.updated} for p in self._wiki.list_pages()]
+            return json.dumps({"pages": pages}, ensure_ascii=False)
+        if tool_name == "team_wiki_read":
+            page = self._wiki.get_page(str(args.get("slug", "")))
+            if page is None:
+                return json.dumps({"error": "page not found"})
+            return json.dumps({"slug": page.slug, "title": page.title, "updated": page.updated,
+                               "content": page.content}, ensure_ascii=False)
+        return json.dumps({"error": f"unknown tool {tool_name}"})
 
 
 def register(ctx) -> None:

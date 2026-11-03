@@ -20,8 +20,21 @@ _DEFAULT_STORE_PATH = Path.home() / ".hermes" / "team_knowledge" / "store.jsonl"
 _MAX_PREFETCH_HITS = 5
 
 
-def _tokenize(text: str) -> set[str]:
-    return set(re.findall(r"[a-zA-Z0-9가-힣]+", text.lower()))
+def tokenize(text: str) -> set[str]:
+    """Search tokens. Latin/digit runs and Hangul runs are split apart so
+    "DB는" still matches "DB"; Hangul runs also yield character bigrams so
+    "결정했어" matches "결정" despite Korean particles/endings. Single Hangul
+    characters (mostly particles) are dropped as noise."""
+    text = text.lower()
+    tokens = set(re.findall(r"[a-z0-9]+", text))
+    for run in re.findall(r"[가-힣]+", text):
+        if len(run) >= 2:
+            tokens.add(run)
+            tokens.update(run[i:i + 2] for i in range(len(run) - 1))
+    return tokens
+
+
+_tokenize = tokenize  # backward-compatible alias
 
 
 class TeamKnowledgeStore:
@@ -81,7 +94,7 @@ class TeamKnowledgeStore:
                     continue
         return entries
 
-    def search(self, query: str) -> str:
+    def search(self, query: str, limit: int = _MAX_PREFETCH_HITS) -> str:
         """Keyword-overlap search (MVP — no embeddings, see design note for
         why this is intentionally out of scope for now)."""
         query_tokens = _tokenize(query)
@@ -95,10 +108,10 @@ class TeamKnowledgeStore:
             if overlap:
                 scored.append((len(overlap), e))
         scored.sort(key=lambda t: t[0], reverse=True)
-        hits = scored[:_MAX_PREFETCH_HITS]
+        hits = scored[:limit]
         if not hits:
             return ""
-        lines = ["[TeamBrain] Relevant team knowledge from other profiles/teammates:"]
+        lines = ["[TeamBrain] Related raw team conversations (from other teammates' bots):"]
         for _, e in hits:
             owner = e.get("owner", {}) or {}
             who = owner.get("user_name") or owner.get("user_id") or e.get("profile", "unknown")
