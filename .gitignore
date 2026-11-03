@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Secrets / local config
+.env
+!.env.example
+*.local
+
+# Local data
+*.db
+*.sqlite3
+*.rdb
+*.jsonl
+
+# Node / landing build output
+node_modules/
+.next/
+out/
+dist/
+.vite/
+
+.DS_Store

@@ -1,0 +1,7 @@
+# 예약·전송(핵심 기능)은 파이썬 표준 라이브러리만 쓴다 — 아무것도 설치하지 않아도 된다.
+#   python3 -m teambrain.reminder add / list / cancel / run / check / doctor
+#
+# 아래는 "슬랙에서 봇을 멘션해서 등록받는" bot 명령에만 필요하다:
+#   pip3 install -r teambrain/reminder/requirements.txt
+#   python3 -m teambrain.reminder bot
+slack_bolt>=1.18

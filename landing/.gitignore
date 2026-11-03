@@ -1,0 +1,9 @@
+node_modules
+.next
+out
+*.local
+.DS_Store
+
+# 빌드할 때마다 자동 생성되는 파일 (커밋하면 팀원 간 충돌 원인이 됨)
+*.tsbuildinfo
+next-env.d.ts

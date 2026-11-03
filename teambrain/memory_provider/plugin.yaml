@@ -1,0 +1,5 @@
+name: teambrain
+version: 0.2.0
+description: "TeamBrain — shared team-knowledge store for Hermes profiles, scoped to open Mattermost channels only (no external service)."
+pip_dependencies: []
+requires_env: []

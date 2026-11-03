@@ -1,0 +1,41 @@
+# Unmodified, official Mattermost Team Edition + PostgreSQL.
+# TeamBrain never modifies the Mattermost server; it only talks to its public REST/WebSocket API.
+#
+#   cp .env.example .env   # then set a real POSTGRES_PASSWORD
+#   docker compose up -d   # → http://localhost:8065
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mmuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+      POSTGRES_DB: mattermost
+    volumes:
+      - mm_db:/var/lib/postgresql/data
+
+  mattermost:
+    image: mattermost/mattermost-team-edition:${MATTERMOST_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      MM_SQLSETTINGS_DRIVERNAME: postgres
+      MM_SQLSETTINGS_DATASOURCE: "postgres://${POSTGRES_USER:-mmuser}:${POSTGRES_PASSWORD}@postgres:5432/mattermost?sslmode=disable"
+      MM_SERVICESETTINGS_SITEURL: ${MM_SITEURL:-http://localhost:8065}
+      MM_SERVICESETTINGS_ENABLEONBOARDINGFLOW: "false"
+    ports:
+      - "8065:8065"
+    volumes:
+      - mm_data:/mattermost/data
+      - mm_logs:/mattermost/logs
+      - mm_config:/mattermost/config
+      - mm_plugins:/mattermost/plugins
+
+volumes:
+  mm_db:
+  mm_data:
+  mm_logs:
+  mm_config:
+  mm_plugins:
