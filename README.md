@@ -30,6 +30,7 @@ DM            하준 → @하준봇  (개인적인 대화)
 | **팀 대화 기록** | 공개 채널에서 봇과 나눈 대화를 팀 공유 저장소에 자동으로 기록합니다. |
 | **팀 위키 자동 정리** | 쌓인 대화를 AI가 결정 사항·주제별 Markdown 문서로 정리합니다. 누가·어디서·언제 말했는지 남기고, 결정이 바뀌면 이전 결정을 "변경 이력"으로 보존합니다. |
 | **팀 기억으로 답하기** | 어떤 팀원의 봇이든, 답하기 전에 정리된 위키를 먼저, 원본 대화를 다음으로 찾아 참고합니다. |
+| **편집기에서도 팀 기억** | MCP 서버로 Claude Code·Cursor 같은 AI 도구에서도 같은 팀 기억과 위키를 검색합니다. → [MCP 서버](teambrain/mcp_server/) |
 | **프라이버시 기본값** | DM·그룹 DM·비공개 채널, 그리고 판단이 애매한 대화는 기록하지 않습니다. → [규칙 설명](docs/visibility-rule.md) |
 | **데이터 주권** | 외부 서비스 없이 팀 서버의 파일 하나에 저장됩니다. |
 
@@ -41,12 +42,14 @@ TeamBrain은 초기 버전(MVP)입니다.
 - [x] 공개 채널 대화만 골라 팀 기억에 기록
 - [x] 팀원별 봇이 팀 기억을 검색해 답변에 활용 (키워드 기반, 한국어 조사 대응)
 - [x] **팀 위키 자동 정리**: 대화 → 주제별 문서, 출처 표기, 결정 변경 이력 보존
+- [x] **MCP 서버**: 편집기 속 AI에서 팀 기억 검색 (기본 읽기 전용)
 
 **앞으로 할 것**
 - [ ] **위키를 메신저에서 보기**: 위키 변경 사항을 채널에 알리고, 메신저에서 바로 열람
 - [ ] **의미 기반 검색**: "DB"로 기록된 대화를 "데이터베이스"로 물어도 찾기
 - [ ] **비공개 채널 단위 공유**: 같은 비공개 채널 멤버끼리만 공유
 - [ ] **사람끼리 나눈 대화 기록**: 지금은 봇과 나눈 대화만 기록됨
+- [ ] **원격 MCP 접속**: 팀 서버의 기억을 각자 컴퓨터에서 바로 검색
 
 ## 필요한 것
 
@@ -78,6 +81,14 @@ hermes gateway restart
 
 자세한 내용: [`teambrain/memory_provider/README.md`](teambrain/memory_provider/README.md)
 
+### 편집기 속 AI에 연결하기 (MCP)
+
+```bash
+claude mcp add teambrain -e PYTHONPATH=/path/to/teambrain -- python3 -m teambrain.mcp_server
+```
+
+Cursor·Claude Desktop 설정과 쓰기 옵션은 [`teambrain/mcp_server/README.md`](teambrain/mcp_server/README.md)를 참고하세요.
+
 ### 메신저가 아직 없다면
 
 자체 호스팅 메신저를 바로 띄울 수 있는 예시 설정이 [`deploy/`](deploy/)에 있습니다 (공식 Mattermost 이미지, 수정 없이 사용).
@@ -86,6 +97,11 @@ hermes gateway restart
 cd deploy && cp .env.example .env   # POSTGRES_PASSWORD를 실제 값으로
 docker compose up -d                # → http://localhost:8065
 ```
+
+## 왜 이렇게 만들었나
+
+- [만들게 된 이야기](docs/why-teambrain.md): 문제를 어떻게 봤고, 무엇을 만들지 않기로 했는지
+- [설계 결정 기록](docs/decisions/): 연결 방식, 라이선스 경계, 프라이버시 규칙, 위키 구조 등 7건
 
 ## 함께 들어 있는 것
 
@@ -98,6 +114,7 @@ Python 코드는 **표준 라이브러리만으로** 돌아가는 것을 원칙�
 
 ```bash
 python3 -m unittest discover -s teambrain/memory_provider/tests -t .   # 팀 기억·위키 테스트
+python3 -m unittest discover -s teambrain/mcp_server/tests -t .        # MCP 서버 테스트
 python3 -m unittest discover -s teambrain/reminder/tests -t .          # 리마인더 테스트
 cd landing && npm install && npm run dev                         # 랜딩 페이지
 ```
